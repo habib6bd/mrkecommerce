@@ -1,0 +1,20 @@
+export type Product = {
+  id: string;
+  name: string;
+  slug: string;
+  category: string;
+  price: number;
+  discountPrice?: number;
+  rating: number;
+  reviewCount: number;
+  images: string[];
+  inStock: boolean;
+  stock: number;
+  shortDescription: string;
+  description: string;
+  colors?: string[];
+  sizes?: string[];
+  soldCount: number;
+  createdAt: string;
+};
+export type CartItem = { product: Product; quantity: number };
