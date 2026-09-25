@@ -10,3 +10,11 @@ out/
 .DS_Store
 dist/
 build/
+
+# Django backend
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.sqlite3
+backend/staticfiles/
+backend/media/
