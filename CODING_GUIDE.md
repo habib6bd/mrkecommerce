@@ -14,14 +14,8 @@ CartClient.tsx
 
 ## Data Style
 
-Keep dummy data in separate files:
-
-```text
-data/products.ts
-data/categories.ts
-```
-
-Later, replace these imports with API/database calls.
+Product/category/cart/order data comes from the Django API via `lib/api/` (one file
+per resource). See `README.md` for the architecture.
 
 ## TypeScript Style
 
@@ -49,13 +43,8 @@ getProductPrice();
 
 ## State Management
 
-Current cart and wishlist state is in:
-
-```text
-store/ShopContext.tsx
-```
-
-Later, you can replace this with Redux Toolkit, Zustand, server actions, database-backed cart, or user account cart.
+Auth session state is in `store/AuthContext.tsx`. Cart and wishlist state (guest
+localStorage + logged-in server-backed) is in `store/ShopContext.tsx`.
 
 ## Formatting
 

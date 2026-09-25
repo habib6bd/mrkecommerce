@@ -1,12 +1,9 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { products } from "@/data/products";
+import { ApiError } from "@/lib/api/client";
+import { getProduct } from "@/lib/api/products";
 import { formatPrice, getProductPrice, starText } from "@/lib/utils";
 import AddToCartButton from "@/components/product/AddToCartButton";
-
-export function generateStaticParams() {
-  return products.map((product) => ({ slug: product.slug }));
-}
 
 type ProductDetailsPageProps = {
   params: Promise<{
@@ -16,9 +13,21 @@ type ProductDetailsPageProps = {
 
 export default async function ProductDetailsPage({ params }: ProductDetailsPageProps) {
   const { slug } = await params;
-  const product = products.find((item) => item.slug === slug);
 
-  if (!product) return notFound();
+  let product;
+  try {
+    product = await getProduct(slug, { next: { revalidate: 60 } });
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return notFound();
+    return (
+      <main className="container-shop py-4">
+        <div className="card p-10 text-center">
+          <h1 className="text-xl font-black text-red-600">Failed to load this product</h1>
+          <p className="mt-2 text-sm text-slate-500">Please refresh the page to try again.</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="container-shop py-4">
@@ -58,12 +67,12 @@ export default async function ProductDetailsPage({ params }: ProductDetailsPageP
           </div>
           <p className="mt-5 leading-8 text-slate-600">{product.description}</p>
 
-          {product.colors ? (
+          {product.colors.length ? (
             <p className="mt-5 text-sm">
               <b>Colors:</b> {product.colors.join(", ")}
             </p>
           ) : null}
-          {product.sizes ? (
+          {product.sizes.length ? (
             <p className="mt-2 text-sm">
               <b>Sizes:</b> {product.sizes.join(", ")}
             </p>

@@ -10,6 +10,7 @@ out/
 .DS_Store
 dist/
 build/
+*.tsbuildinfo
 
 # Django backend
 backend/venv/

@@ -1,10 +1,50 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 import { formatPrice, getProductPrice } from "@/lib/utils";
 import { useShop } from "@/store/ShopContext";
+
+const DELIVERY_FEE = 80;
+
 export default function CartClient() {
-  const { cart, removeFromCart, updateQuantity, subtotal } = useShop();
+  const { cart, cartLoading, cartError, removeFromCart, updateQuantity, subtotal } = useShop();
+  const [pendingId, setPendingId] = useState<string | null>(null);
+
+  async function handleQuantity(lineId: string, quantity: number) {
+    setPendingId(lineId);
+    try {
+      await updateQuantity(lineId, quantity);
+    } finally {
+      setPendingId(null);
+    }
+  }
+
+  async function handleRemove(lineId: string) {
+    setPendingId(lineId);
+    try {
+      await removeFromCart(lineId);
+    } finally {
+      setPendingId(null);
+    }
+  }
+
+  if (cartLoading && !cart.length) {
+    return (
+      <div className="card grid h-48 place-items-center">
+        <p className="font-bold text-slate-500">Loading your cart…</p>
+      </div>
+    );
+  }
+
+  if (cartError) {
+    return (
+      <div className="card p-10 text-center">
+        <p className="font-bold text-red-600">{cartError}</p>
+      </div>
+    );
+  }
+
   if (!cart.length)
     return (
       <div className="card p-10 text-center">
@@ -17,11 +57,12 @@ export default function CartClient() {
         </Link>
       </div>
     );
+
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
       <div className="card divide-y">
         {cart.map((item) => (
-          <div key={item.product.id} className="flex gap-4 p-4">
+          <div key={item.id} className="flex gap-4 p-4">
             <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg">
               <Image
                 src={item.product.images[0]}
@@ -37,21 +78,24 @@ export default function CartClient() {
               </p>
               <div className="mt-3 flex items-center gap-2">
                 <button
-                  onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                  className="h-8 w-8 rounded border"
+                  onClick={() => handleQuantity(item.id, item.quantity - 1)}
+                  disabled={pendingId === item.id}
+                  className="h-8 w-8 rounded border disabled:opacity-50"
                 >
                   -
                 </button>
                 <span className="w-8 text-center font-bold">{item.quantity}</span>
                 <button
-                  onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                  className="h-8 w-8 rounded border"
+                  onClick={() => handleQuantity(item.id, item.quantity + 1)}
+                  disabled={pendingId === item.id}
+                  className="h-8 w-8 rounded border disabled:opacity-50"
                 >
                   +
                 </button>
                 <button
-                  onClick={() => removeFromCart(item.product.id)}
-                  className="ml-3 text-sm font-bold text-red-600"
+                  onClick={() => handleRemove(item.id)}
+                  disabled={pendingId === item.id}
+                  className="ml-3 text-sm font-bold text-red-600 disabled:opacity-50"
                 >
                   Remove
                 </button>
@@ -69,11 +113,11 @@ export default function CartClient() {
           </div>
           <div className="flex justify-between">
             <span>Delivery</span>
-            <b>{formatPrice(80)}</b>
+            <b>{formatPrice(DELIVERY_FEE)}</b>
           </div>
           <div className="flex justify-between border-t pt-3 text-lg">
             <span>Total</span>
-            <b>{formatPrice(subtotal + 80)}</b>
+            <b>{formatPrice(subtotal + DELIVERY_FEE)}</b>
           </div>
         </div>
         <Link

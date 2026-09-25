@@ -1,7 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
-import { categories } from "@/data/categories";
-export default function CategoryGrid() {
+import { listCategories } from "@/lib/api/categories";
+
+export default async function CategoryGrid() {
+  let categories: Awaited<ReturnType<typeof listCategories>> = [];
+  try {
+    categories = await listCategories({ next: { revalidate: 300 } });
+  } catch {
+    return null;
+  }
+
   return (
     <section className="card">
       <div className="section-title">
