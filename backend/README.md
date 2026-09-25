@@ -61,12 +61,15 @@ All endpoints are under `/api/v1/`.
 - `POST register/` — create an account
 - `POST login/` — obtain JWT access/refresh tokens (login with `email` + `password`)
 - `POST refresh/` — refresh an access token
-- `GET/PATCH me/` — view or update the current user's profile (auth required)
+- `GET/PATCH me/` — view or update the current user's profile (auth required);
+  the response includes a read-only `is_staff` flag the frontend uses to show
+  the admin panel
 
 ### Categories (`/api/v1/categories/`)
 - `GET /` — list top-level categories (with nested `subcategories`)
-- `GET /<slug>/` — category detail
-- Write access: admin (`is_staff`) only
+- `GET /<slug>/` — category detail (subcategories can also be read/written directly
+  by their own slug — only the *list* endpoint is top-level-only)
+- `POST /`, `PATCH /<slug>/`, `DELETE /<slug>/` — admin (`is_staff`) only
 
 ### Products (`/api/v1/products/`)
 - `GET /` — paginated list; supports:
@@ -75,9 +78,18 @@ All endpoints are under `/api/v1/`.
   - `min_price=`, `max_price=` (checked against the discounted price when set)
   - `is_featured=true`
   - `ordering=price,-price,rating,-rating,created_at,-created_at,sold_count,-sold_count`
-- `GET /<slug>/` — product detail
+  - Public requests only see `is_active=true` products; an authenticated staff
+    request sees everything (including deactivated products), so the admin UI
+    can manage them.
+- `GET /<slug>/` — product detail (same active/staff visibility rule)
 - `GET /featured/` — featured products
-- Write access: admin only
+- `POST /`, `PATCH /<slug>/`, `DELETE /<slug>/` — admin only
+
+### Product images (`/api/v1/product-images/`, admin only)
+- `POST /` — add an image to a product: `{ "product": "<product-slug>", "image": "<url>", "alt_text": "", "order": 0 }`
+- `DELETE /<id>/` — remove an image
+- Images are plain URL strings (see "Product images" in `../DEPLOYMENT.md`), not
+  uploaded files — paste a path under `public/images/...` or a Cloudinary/S3 URL.
 
 ### Cart (`/api/v1/cart/`, auth required)
 - `GET /` — current user's cart
@@ -94,8 +106,15 @@ All endpoints are under `/api/v1/`.
   `postal_code`, `country`). Stock is validated and reduced inside a DB
   transaction; the cart is cleared afterwards. Payment method is fixed to
   Cash on Delivery for now.
-- `GET /` — list the current user's orders
-- `GET /<id>/` — order detail
+- `GET /` — list orders. A regular user sees only their own; a staff user sees
+  everyone's (supports `?status=pending|confirmed|shipped|delivered|cancelled`).
+- `GET /<id>/` — order detail (same own-vs-all visibility rule)
+- `PATCH /<id>/` — update `status`; admin only
+
+### Admin summary (`/api/v1/admin/summary/`, admin only)
+- `GET /` — dashboard counters: `product_count`, `active_product_count`,
+  `low_stock_count` (active, stock ≤ 5), `category_count`, `order_count`,
+  `pending_order_count`, `revenue_total` (sum of non-cancelled order totals).
 
 ## Docs
 
@@ -107,15 +126,33 @@ Raw OpenAPI schema: `http://localhost:8000/api/schema/`
 `http://localhost:8000/admin/` — all models are registered with list filters
 and search.
 
+To give a storefront account access to the **frontend's** `/admin` panel (product,
+category and order management), mark them staff — either via the Django admin
+(Users → check "Staff status") or:
+
+```bash
+python manage.py shell -c "
+from django.contrib.auth import get_user_model
+u = get_user_model().objects.get(email='someone@example.com')
+u.is_staff = True
+u.save()
+"
+```
+
+`createsuperuser` sets this automatically for the account it creates.
+
 ## Tests
 
 ```bash
 python manage.py test
 ```
 
-Covers auth (register/login/me), product listing/filtering/search/admin
-write access, cart CRUD, wishlist CRUD, and order creation (stock reduction,
-transactional integrity, insufficient-stock/empty-cart handling).
+Covers auth (register/login/me, `is_staff` visibility), product
+listing/filtering/search/admin write access (including inactive-product
+visibility), category management (including direct subcategory access),
+product image CRUD, cart CRUD, wishlist CRUD, order creation (stock reduction,
+transactional integrity, insufficient-stock/empty-cart handling), admin order
+visibility/status updates, and the admin summary endpoint.
 
 ## Production
 

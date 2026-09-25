@@ -4,8 +4,9 @@ A full-stack ecommerce marketplace: a Next.js storefront backed by a Django REST
 API.
 
 - **Frontend** (this directory): Next.js 16 (App Router) + React 19 + TypeScript +
-  Tailwind CSS. JWT auth, server-side cart/wishlist/orders, guest cart with a
-  localStorage fallback.
+  Tailwind CSS + GSAP (for the admin dashboard's animated stats). JWT auth,
+  server-side cart/wishlist/orders, guest cart with a localStorage fallback, and
+  a staff-only admin panel for managing products/categories/orders.
 - **Backend** (`backend/`): Django 5 + Django REST Framework + PostgreSQL (SQLite
   fallback for local dev). Custom email-login `User`, product catalog, cart,
   wishlist, orders. See `backend/README.md` for its API reference and setup.
@@ -138,6 +139,52 @@ the plain order-detail view. `/orders` lists the current user's order history.
 
 Payment is Cash on Delivery only (per the backend), so the checkout form has no other
 payment method to pick.
+
+## Admin panel (`/admin`)
+
+A store admin — any user with `is_staff=True` on the backend (`createsuperuser`
+sets this; see `backend/README.md` → Admin for promoting an existing account) —
+gets an "Admin Panel" link in the header dropdown, leading to:
+
+```text
+/admin                          dashboard: revenue/orders/products/stock stat
+                                 cards (gsap count-up animation), quick links
+/admin/products                 searchable, paginated product table; activate/
+                                 deactivate, edit, delete
+/admin/products/new             create a product
+/admin/products/[slug]/edit     edit a product + manage its images
+/admin/categories               flat table (indented tree) with an inline
+                                 create/edit form; supports subcategories
+/admin/orders                   all orders, filterable by status, inline status
+                                 change (pending → confirmed → shipped → …)
+```
+
+`components/auth/RequireAdmin.tsx` gates the whole `/admin` tree: it redirects
+anonymous visitors to `/login`, and shows a plain "Not authorized" screen for a
+logged-in non-staff user (rather than a confusing 404/blank page).
+
+Product images are managed by URL (paste a `/images/...` path or a Cloudinary/S3
+link) via `components/admin/ProductImageManager.tsx` — see "Product images" in
+`DEPLOYMENT.md` for hosting options; there's no file upload widget since the
+`ProductImage.image` field is a plain string, not a Django `ImageField`.
+
+New backend endpoints added to support this (documented in `backend/README.md`):
+`is_staff` on `/auth/me/`, `/product-images/` (admin CRUD), staff-only
+visibility of inactive products and everyone's orders, `PATCH /orders/<id>/`
+for status changes, and `/admin/summary/` for the dashboard stats. Two
+pre-existing gaps were fixed while wiring this up: `CategoryViewSet` couldn't
+reach a subcategory directly by its own slug (only top-level categories), and
+`ProductViewSet` had no way for staff to see/manage deactivated products —
+both are covered by new tests.
+
+## Bug fix: product detail images
+
+While building the admin image manager we found that `mapProduct` (in
+`lib/api/mappers.ts`) assumed `images` was always a `string[]`, but the product
+**detail** endpoint actually returns nested `{id, image, alt_text, order}`
+objects (only the **list** endpoint returns bare URL strings) — so product
+detail pages were rendering a broken image. Fixed by normalizing both shapes to
+URL strings in the mapper.
 
 ## Design decisions / simplifications
 

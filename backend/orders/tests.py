@@ -156,3 +156,92 @@ class OrderCreationTests(APITestCase):
         response = self.client.get(reverse("order-detail", args=[order_id]))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["id"], order_id)
+
+
+class AdminOrderTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(email="user@example.com", password="pass12345")
+        self.admin = User.objects.create_superuser(
+            email="admin@example.com", password="pass12345"
+        )
+        category = Category.objects.create(name="Shoes", slug="shoes")
+        self.product = Product.objects.create(
+            name="Running Shoes",
+            slug="running-shoes",
+            category=category,
+            price=1000,
+            stock=10,
+        )
+        self.client.force_authenticate(user=self.user)
+        self.client.post(reverse("cart"), {"product_id": self.product.id, "quantity": 1})
+        create_response = self.client.post(
+            reverse("order-list"),
+            {
+                "full_name": "Jane Doe",
+                "phone": "01700000000",
+                "address_line1": "123 Main St",
+                "city": "Dhaka",
+            },
+        )
+        self.order_id = create_response.data["id"]
+
+    def test_regular_user_only_sees_own_orders(self):
+        other = User.objects.create_user(email="other@example.com", password="pass12345")
+        self.client.force_authenticate(user=other)
+        response = self.client.get(reverse("order-list"))
+        self.assertEqual(len(response.data), 0)
+
+    def test_admin_sees_all_orders(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(reverse("order-list"))
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["user_email"], "user@example.com")
+
+    def test_regular_user_cannot_update_order_status(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.patch(
+            reverse("order-detail", args=[self.order_id]), {"status": "confirmed"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_can_update_order_status(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.patch(
+            reverse("order-detail", args=[self.order_id]), {"status": "confirmed"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "confirmed")
+
+        order = Order.objects.get(id=self.order_id)
+        self.assertEqual(order.status, Order.Status.CONFIRMED)
+
+
+class AdminSummaryTests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            email="admin@example.com", password="pass12345"
+        )
+        self.user = User.objects.create_user(email="user@example.com", password="pass12345")
+        category = Category.objects.create(name="Shoes", slug="shoes")
+        Product.objects.create(
+            name="Running Shoes", slug="running-shoes", category=category, price=1000, stock=2
+        )
+        Product.objects.create(
+            name="Old Boots", slug="old-boots", category=category, price=500, stock=0,
+            is_active=False,
+        )
+
+    def test_non_admin_forbidden(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(reverse("admin-summary"))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_sees_summary(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(reverse("admin-summary"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["product_count"], 2)
+        self.assertEqual(response.data["active_product_count"], 1)
+        self.assertEqual(response.data["category_count"], 1)
+        self.assertIn("order_count", response.data)
+        self.assertIn("revenue_total", response.data)

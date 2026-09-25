@@ -1,8 +1,11 @@
 from django.db import transaction
+from django.db.models import Sum
 from django.shortcuts import get_object_or_404
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from catalog.models import Category, Product
 
 from .models import Cart, CartItem, Order, OrderItem, Wishlist
 from .serializers import (
@@ -10,6 +13,7 @@ from .serializers import (
     CartSerializer,
     CreateOrderSerializer,
     OrderSerializer,
+    OrderStatusUpdateSerializer,
     WishlistSerializer,
 )
 
@@ -81,14 +85,32 @@ class WishlistViewSet(
 class OrderViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
 ):
-    serializer_class = OrderSerializer
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = None
+    filterset_fields = ["status"]
+
+    def get_serializer_class(self):
+        if self.action in ("update", "partial_update"):
+            return OrderStatusUpdateSerializer
+        return OrderSerializer
+
+    def get_permissions(self):
+        if self.action in ("update", "partial_update"):
+            return [permissions.IsAdminUser()]
+        return super().get_permissions()
 
     def get_queryset(self):
-        return Order.objects.filter(user=self.request.user).prefetch_related("items")
+        qs = Order.objects.select_related("user").prefetch_related("items")
+        if self.request.user.is_staff:
+            return qs
+        return qs.filter(user=self.request.user)
+
+    def update(self, request, *args, **kwargs):
+        super().update(request, *args, **kwargs)
+        return Response(OrderSerializer(self.get_object()).data)
 
     def create(self, request, *args, **kwargs):
         cart = Cart.objects.filter(user=request.user).first()
@@ -140,3 +162,27 @@ class OrderViewSet(
             cart.items.all().delete()
 
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+
+
+class AdminSummaryView(APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        orders = Order.objects.exclude(status=Order.Status.CANCELLED)
+        revenue_total = orders.aggregate(total=Sum("total"))["total"] or 0
+
+        return Response(
+            {
+                "product_count": Product.objects.count(),
+                "active_product_count": Product.objects.filter(is_active=True).count(),
+                "low_stock_count": Product.objects.filter(
+                    is_active=True, stock__lte=5
+                ).count(),
+                "category_count": Category.objects.count(),
+                "order_count": Order.objects.count(),
+                "pending_order_count": Order.objects.filter(
+                    status=Order.Status.PENDING
+                ).count(),
+                "revenue_total": revenue_total,
+            }
+        )

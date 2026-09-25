@@ -64,6 +64,14 @@ export default function Header({ categories }: { categories: Category[] }) {
                 <Link href="/orders" className="block rounded-md px-3 py-2 text-sm font-semibold hover:bg-brand-50">
                   My Orders
                 </Link>
+                {user.isStaff && (
+                  <Link
+                    href="/admin"
+                    className="block rounded-md px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50"
+                  >
+                    Admin Panel
+                  </Link>
+                )}
                 <button
                   onClick={logout}
                   className="block w-full rounded-md px-3 py-2 text-left text-sm font-semibold text-red-600 hover:bg-red-50"
@@ -113,6 +121,11 @@ export default function Header({ categories }: { categories: Category[] }) {
                 <Link href="/orders" className="block rounded-lg px-3 py-2 font-bold">
                   My Orders
                 </Link>
+                {user.isStaff && (
+                  <Link href="/admin" className="block rounded-lg px-3 py-2 font-bold text-brand-700">
+                    Admin Panel
+                  </Link>
+                )}
                 <button onClick={logout} className="block w-full rounded-lg px-3 py-2 text-left font-bold text-red-600">
                   Logout
                 </button>

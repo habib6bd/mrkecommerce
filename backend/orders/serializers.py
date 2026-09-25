@@ -72,6 +72,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
+    user_email = serializers.EmailField(source="user.email", read_only=True)
+    user_name = serializers.CharField(source="user.name", read_only=True)
 
     class Meta:
         model = Order
@@ -90,10 +92,18 @@ class OrderSerializer(serializers.ModelSerializer):
             "subtotal",
             "total",
             "items",
+            "user_email",
+            "user_name",
             "created_at",
             "updated_at",
         ]
         read_only_fields = ["id", "status", "subtotal", "total", "created_at", "updated_at"]
+
+
+class OrderStatusUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ["status"]
 
 
 class CreateOrderSerializer(serializers.Serializer):

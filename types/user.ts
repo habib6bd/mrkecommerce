@@ -19,6 +19,7 @@ export type User = {
   phone: string;
   addresses: Address[];
   dateJoined: string;
+  isStaff: boolean;
 };
 
 export type AuthTokens = {

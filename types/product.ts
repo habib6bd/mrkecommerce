@@ -16,6 +16,7 @@ export type Product = {
   sizes: string[];
   soldCount: number;
   isFeatured: boolean;
+  isActive: boolean;
   createdAt: string;
 };
 

@@ -24,9 +24,19 @@ export type Order = {
   subtotal: number;
   total: number;
   items: OrderItem[];
+  userEmail: string;
+  userName: string;
   createdAt: string;
   updatedAt: string;
 };
+
+export const ORDER_STATUSES: OrderStatus[] = [
+  "pending",
+  "confirmed",
+  "shipped",
+  "delivered",
+  "cancelled",
+];
 
 export type CreateOrderPayload = {
   fullName: string;

@@ -1,3 +1,4 @@
+import { AdminSummary, CategoryAdminPayload, ProductAdminPayload, ProductImage } from "@/types/admin";
 import { Category } from "@/types/category";
 import { ServerCart, ServerCartItem, WishlistItem } from "@/types/cart";
 import { CreateOrderPayload, Order, OrderItem } from "@/types/order";
@@ -5,6 +6,13 @@ import { Product } from "@/types/product";
 import { Address, User } from "@/types/user";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+/** Product list responses return `images` as URL strings; the detail response
+ * returns nested {id, image, alt_text, order} objects. Normalize both to URLs. */
+function extractImageUrls(images: any): string[] {
+  if (!Array.isArray(images)) return [];
+  return images.map((img) => (typeof img === "string" ? img : img.image));
+}
 
 export function mapProduct(raw: any): Product {
   return {
@@ -16,7 +24,7 @@ export function mapProduct(raw: any): Product {
     discountPrice: raw.discount_price !== null && raw.discount_price !== undefined ? Number(raw.discount_price) : null,
     rating: Number(raw.rating),
     reviewCount: raw.review_count,
-    images: raw.images ?? [],
+    images: extractImageUrls(raw.images),
     inStock: raw.in_stock,
     stock: raw.stock,
     shortDescription: raw.short_description ?? "",
@@ -25,7 +33,17 @@ export function mapProduct(raw: any): Product {
     sizes: raw.sizes ?? [],
     soldCount: raw.sold_count,
     isFeatured: raw.is_featured,
+    isActive: Boolean(raw.is_active),
     createdAt: raw.created_at,
+  };
+}
+
+export function mapProductImage(raw: any): ProductImage {
+  return {
+    id: raw.id,
+    image: raw.image,
+    altText: raw.alt_text ?? "",
+    order: raw.order,
   };
 }
 
@@ -64,6 +82,7 @@ export function mapUser(raw: any): User {
     phone: raw.phone ?? "",
     addresses: (raw.addresses ?? []).map(mapAddress),
     dateJoined: raw.date_joined,
+    isStaff: Boolean(raw.is_staff),
   };
 }
 
@@ -121,6 +140,8 @@ export function mapOrder(raw: any): Order {
     subtotal: Number(raw.subtotal),
     total: Number(raw.total),
     items: (raw.items ?? []).map(mapOrderItem),
+    userEmail: raw.user_email ?? "",
+    userName: raw.user_name ?? "",
     createdAt: raw.created_at,
     updatedAt: raw.updated_at,
   };
@@ -136,5 +157,46 @@ export function toOrderPayload(payload: CreateOrderPayload) {
     state: payload.state ?? "",
     postal_code: payload.postalCode ?? "",
     country: payload.country ?? "Bangladesh",
+  };
+}
+
+export function toProductPayload(payload: Partial<ProductAdminPayload>) {
+  const body: Record<string, unknown> = {};
+  if (payload.name !== undefined) body.name = payload.name;
+  if (payload.slug !== undefined) body.slug = payload.slug;
+  if (payload.categoryId !== undefined) body.category = payload.categoryId;
+  if (payload.price !== undefined) body.price = payload.price;
+  if (payload.discountPrice !== undefined) body.discount_price = payload.discountPrice;
+  if (payload.rating !== undefined) body.rating = payload.rating;
+  if (payload.reviewCount !== undefined) body.review_count = payload.reviewCount;
+  if (payload.stock !== undefined) body.stock = payload.stock;
+  if (payload.shortDescription !== undefined) body.short_description = payload.shortDescription;
+  if (payload.description !== undefined) body.description = payload.description;
+  if (payload.colors !== undefined) body.colors = payload.colors;
+  if (payload.sizes !== undefined) body.sizes = payload.sizes;
+  if (payload.soldCount !== undefined) body.sold_count = payload.soldCount;
+  if (payload.isFeatured !== undefined) body.is_featured = payload.isFeatured;
+  if (payload.isActive !== undefined) body.is_active = payload.isActive;
+  return body;
+}
+
+export function toCategoryPayload(payload: Partial<CategoryAdminPayload>) {
+  const body: Record<string, unknown> = {};
+  if (payload.name !== undefined) body.name = payload.name;
+  if (payload.slug !== undefined) body.slug = payload.slug;
+  if (payload.image !== undefined) body.image = payload.image;
+  if (payload.parent !== undefined) body.parent = payload.parent;
+  return body;
+}
+
+export function mapAdminSummary(raw: any): AdminSummary {
+  return {
+    productCount: raw.product_count,
+    activeProductCount: raw.active_product_count,
+    lowStockCount: raw.low_stock_count,
+    categoryCount: raw.category_count,
+    orderCount: raw.order_count,
+    pendingOrderCount: raw.pending_order_count,
+    revenueTotal: Number(raw.revenue_total),
   };
 }

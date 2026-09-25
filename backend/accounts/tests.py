@@ -58,3 +58,25 @@ class AuthTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         user.refresh_from_db()
         self.assertEqual(user.name, "Jane Updated")
+
+    def test_me_exposes_is_staff_flag(self):
+        user = User.objects.create_user(email="jane@example.com", password="StrongPass123!")
+        admin = User.objects.create_superuser(email="admin@example.com", password="StrongPass123!")
+        url = reverse("auth-me")
+
+        self.client.force_authenticate(user=user)
+        response = self.client.get(url)
+        self.assertFalse(response.data["is_staff"])
+
+        self.client.force_authenticate(user=admin)
+        response = self.client.get(url)
+        self.assertTrue(response.data["is_staff"])
+
+    def test_cannot_set_is_staff_via_update_profile(self):
+        user = User.objects.create_user(email="jane@example.com", password="StrongPass123!")
+        self.client.force_authenticate(user=user)
+        url = reverse("auth-me")
+        response = self.client.patch(url, {"is_staff": True})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertFalse(user.is_staff)

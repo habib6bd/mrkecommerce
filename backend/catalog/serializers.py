@@ -20,6 +20,17 @@ class ProductImageSerializer(serializers.ModelSerializer):
         fields = ["id", "image", "alt_text", "order"]
 
 
+class ProductImageWriteSerializer(serializers.ModelSerializer):
+    product = serializers.SlugRelatedField(
+        slug_field="slug", queryset=Product.objects.all()
+    )
+
+    class Meta:
+        model = ProductImage
+        fields = ["id", "product", "image", "alt_text", "order"]
+        read_only_fields = ["id"]
+
+
 class ProductListSerializer(serializers.ModelSerializer):
     category = serializers.SlugRelatedField(slug_field="slug", read_only=True)
     images = serializers.SerializerMethodField()
@@ -41,6 +52,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             "stock",
             "short_description",
             "is_featured",
+            "is_active",
             "sold_count",
             "created_at",
         ]
