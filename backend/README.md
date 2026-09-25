@@ -116,3 +116,20 @@ python manage.py test
 Covers auth (register/login/me), product listing/filtering/search/admin
 write access, cart CRUD, wishlist CRUD, and order creation (stock reduction,
 transactional integrity, insufficient-stock/empty-cart handling).
+
+## Production
+
+Static files are served by [whitenoise](http://whitenoise.evans.io/) (no separate
+static host needed) and the app runs under `gunicorn`. Security headers
+(HSTS, secure cookies, SSL redirect) turn on automatically whenever `DEBUG=False`;
+see `.env.example` for the full list and how to override individual ones.
+
+```bash
+DEBUG=False python manage.py collectstatic --noinput
+DEBUG=False gunicorn config.wsgi:application --bind 0.0.0.0:8000
+```
+
+A `Dockerfile` is included (runs migrations + `collectstatic` on container start,
+then `gunicorn`). See `../DEPLOYMENT.md` for a full deployment walkthrough
+(Render/Railway + PostgreSQL), plus the Vercel frontend deploy and product-image
+hosting.

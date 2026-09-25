@@ -1,30 +1,60 @@
-# MRKExpressBD Ecommerce Website
+# MRKExpressBD Ecommerce
 
-A clean, readable ecommerce marketplace built with:
+A full-stack ecommerce marketplace: a Next.js storefront backed by a Django REST
+API.
 
-- Next.js 16 (App Router) + React 19 + TypeScript
-- Tailwind CSS
-- A Django REST Framework API (`backend/`, see `backend/README.md`)
-- JWT auth, server-side cart/wishlist/orders, guest cart with localStorage fallback
+- **Frontend** (this directory): Next.js 16 (App Router) + React 19 + TypeScript +
+  Tailwind CSS. JWT auth, server-side cart/wishlist/orders, guest cart with a
+  localStorage fallback.
+- **Backend** (`backend/`): Django 5 + Django REST Framework + PostgreSQL (SQLite
+  fallback for local dev). Custom email-login `User`, product catalog, cart,
+  wishlist, orders. See `backend/README.md` for its API reference and setup.
+- **CI**: `.github/workflows/ci.yml` runs backend tests and frontend
+  type-check/build on every pull request.
+- **Deploying**: see `DEPLOYMENT.md` (Vercel + Render/Railway + PostgreSQL +
+  Cloudinary/S3 for product images).
 
-## Requirements
+## Repository layout
 
-- Node.js 20.9.0+
-- The Django API running (see `backend/README.md`) for any real data — without it,
-  pages render with empty/error states instead of crashing.
+```text
+app/, components/, lib/, store/, types/, public/   → Next.js frontend (this README)
+backend/                                            → Django REST API (backend/README.md)
+.github/workflows/ci.yml                            → CI: backend tests + frontend build
+DEPLOYMENT.md                                        → production deployment guide
+```
 
-## Setup
+## Quick start (both parts)
+
+You need both running locally for the frontend to show real data.
 
 ```bash
+# 1. Backend — Django API on :8000
+cd backend
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+python manage.py migrate
+python manage.py seed_data          # starter categories/products
+python manage.py createsuperuser    # optional, for /admin
+python manage.py runserver
+```
+
+```bash
+# 2. Frontend — Next.js on :3000 (separate terminal, repo root)
 npm install
-cp .env.example .env.local
-# edit .env.local if your API isn't at http://localhost:8000/api/v1
+cp .env.example .env.local          # NEXT_PUBLIC_API_URL defaults to http://localhost:8000/api/v1
 npm run dev
 ```
 
-Open `http://localhost:3000`. Start the backend first (`cd backend && ... && python manage.py runserver`) so pages have data to show.
+Open `http://localhost:3000`. The API itself is at `http://localhost:8000/api/v1/`,
+its Swagger docs at `http://localhost:8000/api/docs/`, and its admin at
+`http://localhost:8000/admin/`. Full details (env vars, endpoints, tests) are in
+`backend/README.md`.
 
-## Scripts
+Requirements: Node.js 20.9.0+, Python 3.11+. Without the backend running, frontend
+pages render with empty/error states instead of crashing — see "Architecture" below.
+
+## Frontend scripts
 
 ```bash
 npm run dev          # development server
@@ -33,6 +63,9 @@ npm run start        # run the production build
 npm run type-check   # tsc --noEmit
 npm run format       # prettier --write .
 ```
+
+Backend equivalents (`cd backend && source venv/bin/activate && ...`):
+`python manage.py runserver`, `python manage.py test`, `python manage.py seed_data`.
 
 ## Architecture
 
@@ -132,13 +165,30 @@ payment method to pick.
 
 ## Environment variables
 
-See `.env.example`:
+Frontend (`.env.example`, repo root):
 
 ```text
 NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 ```
 
+Backend (`backend/.env.example`) — see `backend/README.md` for the full table
+(database, JWT lifetimes, CORS) and `DEPLOYMENT.md` for production-only settings
+(security headers, `CSRF_TRUSTED_ORIGINS`, etc.).
+
+## CI
+
+`.github/workflows/ci.yml` runs on every pull request:
+- `backend-tests` — installs `backend/requirements.txt`, runs migrations, runs
+  `python manage.py test`.
+- `frontend-checks` — `npm ci`, `npm run type-check`, `npm run build`.
+
+## Deployment
+
+See `DEPLOYMENT.md`: frontend on Vercel, backend + PostgreSQL on Render or
+Railway (Dockerfile included, gunicorn + whitenoise), product images on
+Cloudinary/S3 (or kept in `public/images/` — no code change needed either way).
+
 ## Git
 
-`.gitignore` covers `node_modules/`, `.next/`, `.env*`, and the Django backend's
-`venv/`, `*.sqlite3`, `staticfiles/`, `media/`.
+`.gitignore` covers `node_modules/`, `.next/`, `.env*`, `*.tsbuildinfo`, and the
+Django backend's `venv/`, `*.sqlite3`, `staticfiles/`, `media/`.
