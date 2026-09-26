@@ -2,14 +2,20 @@
 import Link from "next/link";
 import ProductGrid from "@/components/product/ProductGrid";
 import { useShop } from "@/store/ShopContext";
+
 export default function WishlistPage() {
-  const { wishlist } = useShop();
+  const { wishlist, wishlistLoading } = useShop();
+
   return (
     <main className="container-shop py-4">
       <section className="card p-4">
         <h1 className="mb-4 text-2xl font-black">Wishlist</h1>
-        {wishlist.length ? (
-          <ProductGrid products={wishlist} />
+        {wishlistLoading && !wishlist.length ? (
+          <div className="grid h-48 place-items-center">
+            <p className="font-bold text-slate-500">Loading your wishlist…</p>
+          </div>
+        ) : wishlist.length ? (
+          <ProductGrid products={wishlist.map((w) => w.product)} />
         ) : (
           <div className="rounded-xl bg-slate-50 p-10 text-center">
             <p className="font-bold text-slate-500">Your wishlist is empty.</p>

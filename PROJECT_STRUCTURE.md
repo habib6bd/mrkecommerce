@@ -46,63 +46,28 @@ components/
   ui/
     Button.tsx                     Reusable button component
 
-data/
-  categories.ts                    Dummy category data
-  products.ts                      Dummy product data and product sections
-
-types/
-  product.ts                       Product and cart TypeScript types
-
 lib/
-  utils.ts                         Helper functions
+  api/                              Typed API client (see README.md "Architecture")
+  utils.ts                          Helper functions
 
 store/
-  ShopContext.tsx                  Cart and wishlist state management
+  AuthContext.tsx                   JWT auth session state
+  ShopContext.tsx                   Cart and wishlist state management
+
+types/
+  product.ts, category.ts, user.ts, cart.ts, order.ts
+                                     TypeScript types mirroring the API responses
+
+backend/
+  Django REST API — see backend/README.md
 ```
 
 ## Easy Editing Guide
 
-### Add or edit products
-
-Open:
-
-```text
-data/products.ts
-```
-
-Each product has:
-
-```ts
-{
-  (id,
-    name,
-    slug,
-    category,
-    price,
-    discountPrice,
-    rating,
-    reviewCount,
-    images,
-    inStock,
-    stock,
-    shortDescription,
-    description,
-    colors,
-    sizes,
-    soldCount,
-    createdAt);
-}
-```
-
-### Add or edit categories
-
-Open:
-
-```text
-data/categories.ts
-```
-
-Make sure the category `slug` matches the product `category`.
+Products and categories now live in the database, seeded via
+`backend/catalog/management/commands/seed_data.py`. Edit that file (and re-run
+`python manage.py seed_data`) to change the starter catalog, or use the admin at
+`http://localhost:8000/admin/`.
 
 ### Change theme color
 
@@ -114,7 +79,7 @@ tailwind.config.ts
 
 Edit the `brand` color values.
 
-### Replace dummy images
+### Replace images
 
 Put images inside:
 
@@ -124,14 +89,9 @@ public/images/categories/
 public/images/banners/
 ```
 
-Then update image paths inside `data/products.ts` or `data/categories.ts`.
+Then update the image paths in `backend/catalog/management/commands/seed_data.py`
+(or upload new ones through `/admin/`).
 
-### Add backend later
+### Backend
 
-Good future locations:
-
-```text
-app/api/
-lib/db.ts
-lib/auth.ts
-```
+See `backend/README.md` for the Django API (models, endpoints, setup).

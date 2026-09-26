@@ -4,7 +4,19 @@ import CategoryGrid from "@/components/home/CategoryGrid";
 import ExpertiseCards from "@/components/home/ExpertiseCards";
 import PromoCards from "@/components/home/PromoCards";
 import ProductSection from "@/components/home/ProductSection";
-import { productSections } from "@/data/products";
+
+const productSections = [
+  { title: "Most Sold Item", category: "all" },
+  { title: "Men’s T-Shirt", category: "mens-clothing" },
+  { title: "Bags", category: "bags" },
+  { title: "Fishing Equipment", category: "fishing-equipment" },
+  { title: "Women’s Jewelry", category: "jewelry" },
+  { title: "Cosmetics", category: "cosmetics" },
+  { title: "Women’s Dress", category: "womens-dress" },
+  { title: "Stationery", category: "stationery" },
+  { title: "Men’s Shoes", category: "mens-shoes" },
+];
+
 export default function HomePage() {
   return (
     <main className="container-shop py-4">

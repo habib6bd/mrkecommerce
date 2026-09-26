@@ -1,6 +1,14 @@
 import Link from "next/link";
-import { categories } from "@/data/categories";
-export default function CategorySidebar() {
+import { listCategories } from "@/lib/api/categories";
+
+export default async function CategorySidebar() {
+  let categories: Awaited<ReturnType<typeof listCategories>> = [];
+  try {
+    categories = await listCategories({ next: { revalidate: 300 } });
+  } catch {
+    return null;
+  }
+
   return (
     <aside className="hidden w-52 shrink-0 rounded-xl border bg-white p-2 shadow-sm lg:block">
       {categories.map((c) => (

@@ -1,12 +1,39 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 import { Product } from "@/types/product";
 import { formatPrice, getDiscountPercent, getProductPrice, starText } from "@/lib/utils";
 import { useShop } from "@/store/ShopContext";
+
 export default function ProductCard({ product }: { product: Product }) {
   const { addToCart, toggleWishlist, isWishlisted } = useShop();
+  const [adding, setAdding] = useState(false);
+  const [wishlistPending, setWishlistPending] = useState(false);
+  const [addError, setAddError] = useState(false);
   const discount = getDiscountPercent(product);
+
+  async function handleAddToCart() {
+    setAdding(true);
+    setAddError(false);
+    try {
+      await addToCart(product);
+    } catch {
+      setAddError(true);
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function handleToggleWishlist() {
+    setWishlistPending(true);
+    try {
+      await toggleWishlist(product);
+    } finally {
+      setWishlistPending(false);
+    }
+  }
+
   return (
     <div className="group relative rounded-xl border bg-white p-2 shadow-sm transition hover:-translate-y-1 hover:shadow-soft">
       {discount > 0 && (
@@ -15,8 +42,10 @@ export default function ProductCard({ product }: { product: Product }) {
         </span>
       )}
       <button
-        onClick={() => toggleWishlist(product)}
-        className="absolute right-2 top-2 z-10 grid h-7 w-7 place-items-center rounded-full bg-white text-sm shadow"
+        onClick={handleToggleWishlist}
+        disabled={wishlistPending}
+        aria-label="Toggle wishlist"
+        className="absolute right-2 top-2 z-10 grid h-7 w-7 place-items-center rounded-full bg-white text-sm shadow disabled:opacity-50"
       >
         {isWishlisted(product.id) ? "♥" : "♡"}
       </button>
@@ -48,11 +77,13 @@ export default function ProductCard({ product }: { product: Product }) {
         </div>
       </Link>
       <button
-        onClick={() => addToCart(product)}
-        className="mt-2 w-full rounded-lg bg-brand-600 px-3 py-2 text-xs font-black text-white"
+        onClick={handleAddToCart}
+        disabled={adding || !product.inStock}
+        className="mt-2 w-full rounded-lg bg-brand-600 px-3 py-2 text-xs font-black text-white disabled:opacity-50"
       >
-        Add to Cart
+        {!product.inStock ? "Out of Stock" : adding ? "Adding…" : "Add to Cart"}
       </button>
+      {addError && <p className="mt-1 text-[10px] font-bold text-red-600">Failed to add. Try again.</p>}
     </div>
   );
 }
