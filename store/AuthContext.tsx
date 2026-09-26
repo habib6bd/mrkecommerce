@@ -4,6 +4,7 @@ import { ApiError } from "@/lib/api/client";
 import {
   getMe,
   login as loginRequest,
+  logoutRequest,
   refreshAccessToken,
   registerUser,
   updateProfile as updateProfileRequest,
@@ -17,7 +18,7 @@ type Ctx = {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (input: { email: string; password: string; name?: string; phone?: string }) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateProfile: (input: { name?: string; phone?: string }) => Promise<void>;
 };
 
@@ -82,7 +83,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [login]
   );
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    const access = getAccessToken();
+    const refresh = getRefreshToken();
+    if (access && refresh) {
+      try {
+        await logoutRequest(access, refresh);
+      } catch {
+        // Best-effort server-side revocation; local tokens are cleared regardless.
+      }
+    }
     clearTokens();
     setToken(null);
     setUser(null);

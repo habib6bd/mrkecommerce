@@ -57,7 +57,12 @@ function LoginForm() {
       >
         {submitting ? "Logging in…" : "Login"}
       </button>
-      <p className="mt-4 text-center text-sm">
+      <p className="mt-3 text-center text-sm">
+        <Link className="font-bold text-brand-700" href="/forgot-password">
+          Forgot password?
+        </Link>
+      </p>
+      <p className="mt-2 text-center text-sm">
         No account?{" "}
         <Link className="font-bold text-brand-700" href="/register">
           Register

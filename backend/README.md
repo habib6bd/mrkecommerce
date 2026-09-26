@@ -52,18 +52,34 @@ The API is served at `http://localhost:8000/api/v1/`.
 | `VERCEL_DOMAIN` | your deployed frontend domain, added to CORS automatically |
 | `ACCESS_TOKEN_LIFETIME_MIN` | JWT access token lifetime in minutes |
 | `REFRESH_TOKEN_LIFETIME_DAYS` | JWT refresh token lifetime in days |
+| `AUTH_THROTTLE_RATE` | rate limit for register/login/password-reset, e.g. `10/min` |
+| `FRONTEND_URL` | frontend origin used to build the password reset link |
+| `EMAIL_HOST` | SMTP host; unset = print emails to the console (dev default) |
+| `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_USE_TLS` | SMTP credentials, only used when `EMAIL_HOST` is set |
+| `DEFAULT_FROM_EMAIL` | "From" address for password reset emails |
 
 ## API overview
 
 All endpoints are under `/api/v1/`.
 
 ### Auth (`/api/v1/auth/`)
-- `POST register/` — create an account
-- `POST login/` — obtain JWT access/refresh tokens (login with `email` + `password`)
+- `POST register/` — create an account (throttled, scope `auth`)
+- `POST login/` — obtain JWT access/refresh tokens (login with `email` + `password`;
+  throttled, scope `auth`)
 - `POST refresh/` — refresh an access token
+- `POST logout/` — blacklist a refresh token (auth required, body: `{ "refresh": "<token>" }`);
+  call this before clearing local tokens so the refresh token can't be reused
 - `GET/PATCH me/` — view or update the current user's profile (auth required);
   the response includes a read-only `is_staff` flag the frontend uses to show
   the admin panel
+- `POST password-reset/` — request a password reset email (throttled, scope `auth`,
+  body: `{ "email": "<email>" }`); always returns the same generic response,
+  whether or not the email is registered, to avoid leaking which emails have accounts
+- `POST password-reset/confirm/` — complete a password reset (throttled, scope `auth`,
+  body: `{ "uid": "<uid>", "token": "<token>", "new_password": "<new>" }`); `uid`/`token`
+  come from the link sent to the user's email (`FRONTEND_URL/reset-password?uid=&token=`)
+- `GET/POST addresses/`, `GET/PATCH/DELETE addresses/<id>/` — CRUD for the current
+  user's saved addresses (auth required); users only ever see their own addresses
 
 ### Categories (`/api/v1/categories/`)
 - `GET /` — list top-level categories (with nested `subcategories`)

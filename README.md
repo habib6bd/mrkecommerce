@@ -123,11 +123,21 @@ is active.
 `store/AuthContext.tsx` stores the JWT pair in localStorage and exposes `user`,
 `token`, `loading`, `login`, `register`, `logout`, `updateProfile`. On mount it calls
 `/auth/me/`; if the access token is expired it refreshes once via `/auth/refresh/`
-before giving up and clearing the session.
+before giving up and clearing the session. `logout` now calls `POST /auth/logout/`
+to blacklist the refresh token server-side before clearing local storage (best-effort;
+local tokens are cleared even if the request fails, e.g. while offline).
 
 `components/auth/RequireAuth.tsx` wraps `/checkout`, `/profile`, `/orders`, and
 `/orders/[id]` — it shows a loading state while the session hydrates, then redirects
 to `/login` if there's no user.
+
+`/forgot-password` and `/reset-password` implement the password reset flow:
+the former posts an email to `/auth/password-reset/`, the latter reads `uid`/`token`
+from the URL query string (the link emailed to the user) and posts them plus a new
+password to `/auth/password-reset/confirm/`.
+
+`/profile` also renders an address book backed by `/auth/addresses/` (list/create/
+update/delete), scoped to the logged-in user.
 
 ## Checkout & orders
 

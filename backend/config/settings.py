@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     # third party
     "rest_framework",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "django_filters",
     "drf_spectacular",
     "corsheaders",
@@ -179,6 +180,11 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 12,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    # Only endpoints that opt in (throttle_classes + throttle_scope="auth") are
+    # rate-limited — register/login/password-reset. Everything else is unaffected.
+    "DEFAULT_THROTTLE_RATES": {
+        "auth": env("AUTH_THROTTLE_RATE", default="10/min"),
+    },
 }
 
 SIMPLE_JWT = {
@@ -189,6 +195,7 @@ SIMPLE_JWT = {
         days=env.int("REFRESH_TOKEN_LIFETIME_DAYS", default=7)
     ),
     "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
@@ -214,3 +221,25 @@ if _vercel_domain:
         if _vercel_domain.startswith("http")
         else f"https://{_vercel_domain}"
     )
+
+
+# Email (password reset)
+#
+# Defaults to printing emails to the console — fine for local dev. Set EMAIL_HOST
+# in production to send real emails via SMTP.
+
+if env("EMAIL_HOST", default=""):
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = env("EMAIL_HOST")
+    EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+    EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+    EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+    EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@mrkexpressbd.com")
+
+# Where the frontend's reset-password page lives, for building the link in the
+# password reset email.
+FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:3000")
