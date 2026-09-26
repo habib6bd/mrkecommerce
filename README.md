@@ -14,6 +14,9 @@ API.
   type-check/build on every pull request.
 - **Deploying**: see `DEPLOYMENT.md` (Vercel + Render/Railway + PostgreSQL +
   Cloudinary/S3 for product images).
+- **How the API and frontend fit together**: see `API_WORKFLOW.md` for a
+  full endpoint-by-endpoint, request/response walkthrough of every feature
+  (auth, cart/wishlist merge, checkout, admin, password reset, …).
 
 ## Repository layout
 
@@ -22,6 +25,7 @@ app/, components/, lib/, store/, types/, public/   → Next.js frontend (this RE
 backend/                                            → Django REST API (backend/README.md)
 .github/workflows/ci.yml                            → CI: backend tests + frontend build
 DEPLOYMENT.md                                        → production deployment guide
+API_WORKFLOW.md                                      → full API/frontend workflow reference
 ```
 
 ## Quick start (both parts)
